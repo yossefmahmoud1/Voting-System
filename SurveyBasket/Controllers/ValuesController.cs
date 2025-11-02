@@ -5,7 +5,7 @@ namespace SurveyBasket.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ValuesController(IProductService productService) : ControllerBase
+    public class ValuesController() : ControllerBase
     {
         [HttpGet]
         public IActionResult Get()
