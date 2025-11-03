@@ -31,7 +31,7 @@ namespace SurveyBasket.Controllers
 
 
 
-        [HttpPost]
+        [HttpPost("Add")]
         public IActionResult Add(Poll poll)
         {
             var Poll = _pollService.Add(poll);

@@ -1,8 +1,10 @@
-﻿namespace SurveyBasket.Services.Interfaces
+﻿using SurveyBasket.Dtos;
+
+namespace SurveyBasket.Services.Interfaces
 {
     public interface IPollService
     {
-      IEnumerable<Poll> GetAll();
+      IEnumerable<PollResponse> GetAll();
         Poll?  GetById(int Id);
         Poll  Add (Poll poll);
         bool Update(int id,Poll poll);
