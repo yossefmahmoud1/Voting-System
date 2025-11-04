@@ -7,6 +7,6 @@ global using FluentValidation;
 global using SurveyBasket.Entities;
 global using SurveyBasket.Services;
 global using SurveyBasket.Dtos;
-global using SurveyBasket.Dtos.Requests;
-global using SurveyBasket.Dtos.Responses;
+global using SurveyBasket.Dtos.Auth;
+global using SurveyBasket.Dtos.Polls;
 global using SurveyBasket.Persistence;

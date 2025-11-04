@@ -1,4 +1,6 @@
-﻿namespace SurveyBasket.Dtos.Validations;
+﻿using SurveyBasket.Dtos.Polls;
+
+namespace SurveyBasket.Dtos.Validations;
 
 public class PollRequestValidator : AbstractValidator<PollRequest>
 {

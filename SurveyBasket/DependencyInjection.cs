@@ -1,6 +1,9 @@
 ﻿using FluentValidation.AspNetCore;
 using MapsterMapper;
+using Microsoft.AspNetCore.Identity;
 using SurveyBasket.Persistence;
+using SurveyBasket.Services.Implementation;
+using SurveyBasket.Services.Interfaces;
 using System.Reflection;
 
 namespace SurveyBasket;
@@ -11,7 +14,7 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddControllers();
-
+        services.AddAuthConf();
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
             throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
@@ -24,6 +27,7 @@ public static class DependencyInjection
             .AddFluentValidationConf();
 
         services.AddScoped<IPollService, PollService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
@@ -54,5 +58,12 @@ public static class DependencyInjection
             .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         return services;
+    }
+    private static IServiceCollection AddAuthConf(this IServiceCollection services)
+    {
+        services.AddIdentity<Application_User, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+        return services;
+
     }
 }

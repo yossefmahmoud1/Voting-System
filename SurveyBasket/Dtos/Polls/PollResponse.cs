@@ -1,4 +1,4 @@
-﻿namespace SurveyBasket.Dtos.Responses;
+﻿namespace SurveyBasket.Dtos.Polls;
 
 public record PollResponse(
     int Id,
