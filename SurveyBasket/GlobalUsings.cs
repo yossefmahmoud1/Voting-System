@@ -10,3 +10,5 @@ global using SurveyBasket.Dtos;
 global using SurveyBasket.Dtos.Auth;
 global using SurveyBasket.Dtos.Polls;
 global using SurveyBasket.Persistence;
+global using SurveyBasket.Abstraction;
+global using SurveyBasket.Errors;
