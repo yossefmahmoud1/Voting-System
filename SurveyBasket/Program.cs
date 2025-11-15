@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SurveyBasket;
+using SurveyBasket.MiddleWare;
 using SurveyBasket.Persistence;
 using SurveyBasket.Services.OptionsPattern;
 
@@ -25,7 +26,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 //app.MapIdentityApi<Application_User>();
 app.MapControllers();
-
+//app.UseMiddleware<ExecptionHandlingMiddleWare>();
+app.UseExceptionHandler();
 app.Run();
 
 // Make Program class accessible for testing

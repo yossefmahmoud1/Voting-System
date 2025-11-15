@@ -232,6 +232,7 @@ namespace SurveyBasket.Services.Implementation
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+        // -------------------- Refresh Token --------------------
 
         private RefreshToken GenerateRefreshToken()
         {

@@ -1,4 +1,6 @@
-﻿namespace SurveyBasket.Entities;
+﻿using SurveyBasket.Entities.Questions;
+
+namespace SurveyBasket.Entities;
 
 public sealed class Poll: AuditableEntity
 {
@@ -8,6 +10,8 @@ public sealed class Poll: AuditableEntity
     public bool IsPublished { get; set; }
     public DateOnly StartsAt { get; set; }
     public DateOnly EndsAt { get; set; }
+
+    public ICollection<Question> Questions { get; set; } = [];
    
 }
  

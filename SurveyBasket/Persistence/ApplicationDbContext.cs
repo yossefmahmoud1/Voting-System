@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using SurveyBasket.Entities.Answers;
+using SurveyBasket.Entities.Questions;
 
 namespace SurveyBasket.Persistence;
 
@@ -10,10 +12,17 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;
 
     public DbSet<Poll> Polls { get; set; }
+    public DbSet<Answer> Answers { get; set; }
+    public DbSet<Question> Questions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+     var CascadeFks=   modelBuilder.Model.GetEntityTypes().SelectMany(T => T.GetForeignKeys()).Where(fk =>fk.DeleteBehavior == DeleteBehavior.Cascade && !fk.IsOwnership);
+        foreach (var fk in CascadeFks)
+            fk.DeleteBehavior = DeleteBehavior.Restrict;
+
         modelBuilder.Entity<Application_User>()
             .HasIndex(u => u.UserName)
             .IsUnique();

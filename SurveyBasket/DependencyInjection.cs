@@ -51,7 +51,9 @@ public static class DependencyInjection
         // Register Services
         services.AddScoped<IPollService, PollService>();
         services.AddScoped<IAuthService, AuthService>();
-
+        services.AddScoped<IQuestionService, QuestionService>();
+        services.AddExceptionHandler<GlobalExecptionHandler>();
+        services.AddProblemDetails();   
         return services;
     }
 

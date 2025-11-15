@@ -28,6 +28,9 @@ public class PollService : IPollService
 
     public async Task<Result<Poll>> AddAsync(Poll poll, CancellationToken cancellationToken = default)
     {
+        var existingPoll = await _pollRepository.AnyAsync(x =>x.Title == poll.Title , cancellationToken:cancellationToken);
+        if (existingPoll)
+            return Result.Fail<Poll>(PollErrors.PollAlreadyExists);
         await _pollRepository.AddAsync(poll, cancellationToken);
         await _pollRepository.SaveChangesAsync(cancellationToken);
         return Result.Success(poll);
@@ -36,27 +39,37 @@ public class PollService : IPollService
 
 
 
-
     public async Task<Result<Poll>> UpdateAsync(int id, Poll poll, CancellationToken cancellationToken = default)
     {
-        var currentPollResult = await GetAsync(id, cancellationToken);
+        // 1️⃣ تأكد إن العنوان مش مكرر
+        var isTitleTaken = await _pollRepository.AnyAsync(
+            x => x.Title == poll.Title && x.Id != id,
+            cancellationToken
+        );
 
-        if (currentPollResult.IsFailiure)
+        if (isTitleTaken)
+            return Result.Fail<Poll>(PollErrors.PollAlreadyExists);
+
+        // 2️⃣ احضر الـ Poll الحالي
+        var existingPollResult = await GetAsync(id, cancellationToken);
+        if (existingPollResult.IsFailiure)
             return Result.Fail<Poll>(PollErrors.PollNotFound);
 
-        var pollToUpdate = currentPollResult.Value;
+        var pollToUpdate = existingPollResult.Value;
+
+        // 3️⃣ حدث البيانات
         pollToUpdate.Title = poll.Title;
         pollToUpdate.Summary = poll.Summary;
         pollToUpdate.IsPublished = poll.IsPublished;
         pollToUpdate.StartsAt = poll.StartsAt;
         pollToUpdate.EndsAt = poll.EndsAt;
 
+        // 4️⃣ حفظ التغييرات
         _pollRepository.Update(pollToUpdate);
         await _pollRepository.SaveChangesAsync(cancellationToken);
 
         return Result.Success(pollToUpdate);
     }
-
 
     public async Task<Result<Poll>> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
