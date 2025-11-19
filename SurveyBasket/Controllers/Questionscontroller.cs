@@ -37,9 +37,9 @@ namespace SurveyBasket.Controllers
             if (result.IsSuccess)
                 return CreatedAtAction(nameof(GetById) , new {pollId , result.Value.Id},result.Value);
 
-            return result.Error.Equals(QuestionErros.DublicatedContent)
-                ?result.ToProblem(StatusCodes.Status409Conflict)
-                :result.ToProblem(StatusCodes.Status404NotFound);
+            return result.Error == QuestionErros.DublicatedContent
+                ? result.ToProblem(StatusCodes.Status409Conflict)
+                : result.ToProblem(StatusCodes.Status404NotFound);
           
         }
 
@@ -67,8 +67,10 @@ namespace SurveyBasket.Controllers
 
 
             return result.IsSuccess
-                     ? Ok(result.Value)
-                     : result.ToProblem(StatusCodes.Status404NotFound);
+                ? Ok(result.Value)
+                : result.ToProblem(result.Error == QuestionErros.DublicatedContent
+                    ? StatusCodes.Status409Conflict
+                    : StatusCodes.Status404NotFound);
 
 
         }

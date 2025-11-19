@@ -48,10 +48,10 @@ public class PollsController(IPollService pollService) : ControllerBase
         var result = await _pollService.UpdateAsync(id, request.Adapt<Poll>(), cancellationToken);
 
         return result.IsSuccess
-            ? NoContent() // ✅ في حالة النجاح نرجع 204 NoContent (صح REST)
+            ? NoContent() 
             : result.ToProblem(result.Error == PollErrors.PollNotFound
-                ? StatusCodes.Status404NotFound   // ✅ لو البولي غير موجود
-                : StatusCodes.Status409Conflict);  // ✅ لو الاسم مكرر
+                ? StatusCodes.Status404NotFound   
+                : StatusCodes.Status409Conflict);  
     }
 
 
@@ -74,4 +74,16 @@ public class PollsController(IPollService pollService) : ControllerBase
             ? Ok(result.Value.Adapt<PollResponse>())
             : result.ToProblem(StatusCodes.Status404NotFound);
     }
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
+    {
+        var result = await _pollService.GetActive(
+            asNoTracking: true,
+            cancellationToken: cancellationToken);
+
+        return result.IsSuccess
+            ? Ok(result.Value.Adapt<IEnumerable<PollResponse>>())
+            : result.ToProblem(StatusCodes.Status404NotFound);
+    }
+
 }

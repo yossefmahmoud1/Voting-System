@@ -1,4 +1,6 @@
-﻿namespace SurveyBasket.Abstraction
+﻿using SurveyBasket.Dtos.Results;
+
+namespace SurveyBasket.Abstraction
 {
     public static class ResultHelpers
     {
@@ -7,7 +9,7 @@
             if (result.IsSuccess)
                 throw new InvalidOperationException(message: "Cannot convert success result to a problem");
 
-            var problem = Results.Problem(statusCode: statusCode);
+            var problem = Microsoft.AspNetCore.Http.Results.Problem(statusCode: statusCode);
             var problemDetails = problem.GetType().GetProperty(nameof(ProblemDetails))!.GetValue(problem) as ProblemDetails;
 
             problemDetails!.Extensions = new Dictionary<string, object?>

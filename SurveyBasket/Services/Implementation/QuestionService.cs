@@ -101,7 +101,7 @@ namespace SurveyBasket.Services.Implementation
                 return Result.Fail<QuestionResponse>(QuestionErros.QuestionlNotFound);
 
             // Successful
-            return Result.Success(question);   // خلاص خلاصنا، مش محتاج Adapt
+            return Result.Success(question);   
         }
 
         public async Task<Result<QuestionResponse>> ToggleStatusAsync(int PollId, int QuestionId, CancellationToken cancellationToken = default)
@@ -174,5 +174,46 @@ namespace SurveyBasket.Services.Implementation
             // 11) Return success WITH response
             return Result.Success(response);
         }
+
+        public async Task<Result<IEnumerable<QuestionResponse>>> GetAvailable(
+    int PollId,
+    string userId,
+    CancellationToken cancellationToken = default)
+        {
+            // 1) Check if the user has already voted in this poll
+            var Hasvote = await _context.Votes
+                .AnyAsync(x => x.PollId == PollId && x.UserId == userId, cancellationToken);
+
+            if (Hasvote)
+                return Result.Fail<IEnumerable<QuestionResponse>>(VoteErrors.AlreadyVoted);
+
+
+            // 2) Check if the poll exists and is currently active (within Start/End dates)
+            var PollIsExiests = await _pollsrepo.AnyAsync(
+                p => p.Id == PollId
+                  && p.StartsAt <= DateOnly.FromDateTime(DateTime.UtcNow)
+                  && p.EndsAt >= DateOnly.FromDateTime(DateTime.UtcNow),
+                cancellationToken: cancellationToken
+            );
+
+            if (!PollIsExiests)
+                return Result.Fail<IEnumerable<QuestionResponse>>(PollErrors.PollNotFound);
+
+
+            // 3) Get all active questions for this poll
+            var questions = await _context.Questions
+                .Where(q => q.pollId == PollId && q.IsActive)
+                .Include(q => q.Answers.Where(a => a.IsActive)) // Load only active answers
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+
+            // 4) Map Entities to DTO responses
+            var response = questions.Adapt<IEnumerable<QuestionResponse>>();
+
+            // 5) Return the result
+            return Result.Success(response);
+        }
+
     }
 }

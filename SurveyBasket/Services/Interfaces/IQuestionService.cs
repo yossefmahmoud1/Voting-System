@@ -7,6 +7,7 @@ namespace SurveyBasket.Services.Interfaces
         Task<Result<QuestionResponse>> AddAsync(int PollId , QuestionRequest questionRequest , CancellationToken cancellationToken=default);
         Task<Result<QuestionResponse>> GetByIdAsync(int PollId , int QuestionId, CancellationToken cancellationToken=default);
         Task<Result<IEnumerable<QuestionResponse>>> GetAllAsync(int PollId ,  CancellationToken cancellationToken=default);
+        Task<Result<IEnumerable<QuestionResponse>>> GetAvailable(int PollId , string userId, CancellationToken cancellationToken=default);
         Task<Result<QuestionResponse>> ToggleStatusAsync(int PollId, int QuestionId, CancellationToken cancellationToken=default);
         Task<Result<QuestionResponse>> UpdateAsync(
             int PollId,

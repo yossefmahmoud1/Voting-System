@@ -8,4 +8,6 @@ public interface IPollService
     Task<Result<Poll>> UpdateAsync(int id, Poll poll, CancellationToken cancellationToken = default);
     Task<Result<Poll>> DeleteAsync(int id, CancellationToken cancellationToken = default);
     Task<Result<Poll>> TogglePublishStatusAsync(int id, CancellationToken cancellationToken = default);
+    Task<Result<IEnumerable<PollResponse>>> GetActive(bool asNoTracking = false, CancellationToken cancellationToken = default);
+
 }
