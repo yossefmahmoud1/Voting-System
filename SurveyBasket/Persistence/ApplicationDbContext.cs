@@ -7,7 +7,7 @@ using SurveyBasket.Entities.Votes;
 
 namespace SurveyBasket.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options , IHttpContextAccessor httpContextAccessor) : IdentityDbContext<Application_User>(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext > options , IHttpContextAccessor httpContextAccessor) : IdentityDbContext<Application_User , ApplicationRole,string>(options)
 {
     private readonly DbContextOptions<ApplicationDbContext> options = options;
     private readonly IHttpContextAccessor httpContextAccessor = httpContextAccessor;

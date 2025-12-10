@@ -1,15 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using SurveyBasket.Abstraction.Consts;
+using SurveyBasket.PremisonsAuth;
 
 namespace SurveyBasket.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
 public class PollsController(IPollService pollService) : ControllerBase
 {
     private readonly IPollService _pollService = pollService;
 
     [HttpGet("")]
+    [HasPermission(Permissions.GetPolls)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _pollService.GetAllAsync(asNoTracking: true, cancellationToken);
@@ -75,6 +77,8 @@ public class PollsController(IPollService pollService) : ControllerBase
             : result.ToProblem(StatusCodes.Status404NotFound);
     }
     [HttpGet("active")]
+    [Authorize(Roles = DefaultRoles.Member)]
+
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken)
     {
         var result = await _pollService.GetActive(

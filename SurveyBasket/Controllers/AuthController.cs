@@ -1,48 +1,53 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SurveyBasket.Dtos.Auth;
+using SurveyBasket.Dtos.User;
+using SurveyBasket.Errors;
+using SurveyBasket.Services.Implementation;
 using SurveyBasket.Services.Interfaces;
 
 namespace SurveyBasket.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class Auth(IAuthService authService) : ControllerBase
+    public class Auth(IAuthService authService, ILogger<AuthService> logger) : ControllerBase
     {
         private readonly IAuthService authService = authService;
+        private readonly ILogger<AuthService> logger = logger;
 
         [HttpPost("login")]
-        public async Task<IActionResult>  Login(LoginDto loginDto , CancellationToken cancellationToken=default)
+        public async Task<IActionResult> Login(LoginDto loginDto, CancellationToken cancellationToken = default)
         {
+            logger.LogInformation("Login attempt for email: {Email}", loginDto.Email);
             var AuthResponse = await authService.LoginAsync(loginDto, cancellationToken);
-         return AuthResponse.IsSuccess
-                ? Ok(AuthResponse.Value)
-                : BadRequest(AuthResponse.Error);
+            return AuthResponse.IsSuccess
+                   ? Ok(AuthResponse.Value)
+                   : BadRequest(AuthResponse.Error);
         }
 
 
-   
+
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto registerDto, CancellationToken cancellationToken = default)
         {
-            var authResponse = await authService.RegisterAsync(registerDto, cancellationToken);
+            var result = await authService.RegisterAsync(registerDto, cancellationToken);
 
-            if (authResponse is null)
-                return BadRequest(new
-                {
-                    Message = "Registration failed."
-                });
+            if (result.IsSuccess)
+                return Ok(result);
 
-            // لو authResponse يحتوي على اقتراحات لاسم مستخدم
-            if (authResponse is UsernameTakenResponse takenResponse)
-                return BadRequest(takenResponse);
+            // Handle username taken error with suggestions
+            if (result.Error is UsernameTakenError usernameError)
+            {
+                var response = new UsernameTakenResponse(
+                    "Username already exists",
+                    usernameError.Suggestions.ToList()
+                );
+                return BadRequest(response);
+            }
 
-            // أخطاء التسجيل العامة (مثل تكرار الإيميل أو فشل سياسة كلمة المرور)
-            if (authResponse is RegistrationErrorResponse errorResponse)
-                return BadRequest(errorResponse);
-
-            // لو التسجيل نجح
-            return Ok(authResponse);
+            // Handle other registration errors
+            var errorResponse = new RegistrationErrorResponse(result.Error.Message);
+            return BadRequest(errorResponse);
         }
 
 
@@ -64,5 +69,37 @@ namespace SurveyBasket.Controllers
                 return BadRequest("Invalid or already revoked refresh token.");
             return Ok(new { Message = "Refresh token revoked successfully." });
         }
+
+        [HttpPost("confirm-email")]
+        public async Task<IActionResult> ConfirmEmail(ConfirmEmailDto dto, CancellationToken ct)
+        {
+            var result = await authService.ConfirmEmailAsync(dto, ct);
+            return result.IsSuccess ? Ok(new { Message = "Email confirmed successfully." }) : BadRequest(result.Error);
+        }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgetPassword(
+      ForgetPasswordByEmailRequest request)
+        {
+            var result = await authService.SendResetPasswordCodeAsync(request.Email);
+
+            return result.IsSuccess
+                ? Ok(new { Message = "If the email exists, a password reset link has been sent." })
+                : BadRequest(new { Error = result.Error.Message });
+        }
+
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(
+    [FromBody] ResetPasswordRequest request
+   )
+        {
+            var result = await authService.ResetPassWordAsync(request);
+
+            return result.IsSuccess
+                ? Ok(new { Message = "Password has been reset successfully." })
+                : result.ToProblem(result.Error.StatusCode);
+        }
+
+        
     }
 }

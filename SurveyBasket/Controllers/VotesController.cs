@@ -1,6 +1,8 @@
 ﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SurveyBasket.Abstraction.Consts;
 using SurveyBasket.Dtos.Votes;
 using SurveyBasket.Extensions;
 using SurveyBasket.Services.Interfaces;
@@ -9,12 +11,14 @@ namespace SurveyBasket.Controllers
 {
     [Route("api/Polls/{pollId}/Vote")]
     [ApiController]
+    [Authorize(Roles =DefaultRoles.Member)]
     public class VotesController(IQuestionService questionService , IVoteService voteService) : ControllerBase
     {
         private readonly IQuestionService _questionService = questionService;
         private readonly IVoteService voteService = voteService;
 
         [HttpGet("")]
+        [ResponseCache(Duration =60)]  //just 200
         public async Task<IActionResult> Start([FromRoute] int pollId, CancellationToken cancellationToken)
         {
             var userId = User.GetUserId();

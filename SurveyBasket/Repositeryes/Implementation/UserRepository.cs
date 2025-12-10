@@ -20,6 +20,7 @@ public class UserRepository : IUserRepository
     public async Task<Application_User?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _userManager.FindByIdAsync(id);
+
     }
 
     public async Task<Application_User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
@@ -81,5 +82,32 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.GetRolesAsync(user);
     }
+    public async Task<string> GenerateEmailConfirmationTokenAsync(Application_User user)
+    {
+        return await _userManager.GenerateEmailConfirmationTokenAsync(user);
+    }
+    public async Task<bool> ConfirmEmailAsync(Application_User user, string token)
+    {
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        return result.Succeeded;
+    }
+    public async Task<string> GenratePasswordResetTokenAsync(Application_User user)
+    {
+        return await _userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    public async Task<IdentityResult> ResetPasswordAsync(
+     Application_User user,
+     string token,
+     string newPassword)
+    {
+        return await _userManager.ResetPasswordAsync(user, token, newPassword);
+    }
+    public async Task AddToRoleAsync(Application_User user, string roleName)
+    {
+        await _userManager.AddToRoleAsync(user, roleName);
+    }
+
+
 }
 

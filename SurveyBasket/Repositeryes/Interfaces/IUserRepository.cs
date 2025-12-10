@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using SurveyBasket.Entities;
 
 namespace SurveyBasket.Repositeryes.Interfaces;
@@ -15,5 +16,14 @@ public interface IUserRepository
     Task<bool> CheckPasswordAsync(Application_User user, string password);
     Task UpdateAsync(Application_User user, CancellationToken cancellationToken = default);
     Task<IList<string>> GetRolesAsync(Application_User user);
+    Task<string> GenerateEmailConfirmationTokenAsync(Application_User user);
+    Task<bool> ConfirmEmailAsync(Application_User user, string token);
+    Task<string> GenratePasswordResetTokenAsync(Application_User user);
+    Task<IdentityResult> ResetPasswordAsync(Application_User user, string token, string newPassword);
+    Task AddToRoleAsync(Application_User user, string roleName);
+
+
+
+
 }
 

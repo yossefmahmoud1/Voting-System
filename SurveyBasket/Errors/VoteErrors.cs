@@ -1,14 +1,13 @@
-﻿namespace SurveyBasket.Errors
+﻿using SurveyBasket.Abstraction;
+
+namespace SurveyBasket.Errors
 {
-    public class  VoteErrors
+    public static class VoteErrors
     {
         public static readonly Error AlreadyVoted =
-           new Error("Vote.AlreadyVoted", "This User Voted Before On This Poll");
+            new("Vote.AlreadyVoted", "This user has already voted on this poll", StatusCodes.Status409Conflict);
 
         public static readonly Error InvalidQuestions =
-         new Error("Vote.InvalidQuestions", "InvalidQuestions");
-
-
-
+            new("Vote.InvalidQuestions", "One or more questions are invalid", StatusCodes.Status400BadRequest);
     }
 }

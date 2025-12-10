@@ -1,16 +1,20 @@
-﻿using SurveyBasket.Repositeryes.Interfaces;
+﻿using Hangfire;
+using SurveyBasket.Repositeryes.Interfaces;
+using SurveyBasket.Services.Implementation;
 
 namespace SurveyBasket.Services;
 
 public class PollService : IPollService
 {
     private readonly IRepository<Poll> _pollRepository;
+    private readonly INotifcationService notifcationService;
     private readonly ApplicationDbContext _context;
 
-    public PollService(IRepository<Poll> pollRepository, ApplicationDbContext context
+    public PollService(IRepository<Poll> pollRepository, INotifcationService notifcationService, ApplicationDbContext context
 )
     {
         _pollRepository = pollRepository ?? throw new ArgumentNullException(nameof(pollRepository));
+        this.notifcationService = notifcationService;
         _context = context;
 
     }
@@ -118,6 +122,11 @@ public class PollService : IPollService
 
         _pollRepository.Update(poll);
         await _pollRepository.SaveChangesAsync(cancellationToken);
+
+        if(poll.IsPublished && poll.StartsAt == DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+          BackgroundJob.Enqueue(() =>notifcationService.SendNewPollNotficationsAsync(poll.Id)  );
+        }
 
         return Result.Success(poll);
     }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using SurveyBasket.Dtos.Questions;
 using SurveyBasket.Entities.Answers;
 using SurveyBasket.Entities.Questions;
@@ -12,39 +13,54 @@ namespace SurveyBasket.Services.Implementation
     {
         private readonly IRepository<Question> _questionsrepo;
         private readonly IRepository<Poll> _pollsrepo;
+        private readonly ICasheService _casheService;
 
         private readonly ApplicationDbContext _context;
 
         public QuestionService(
             ApplicationDbContext context,
             IRepository<Question> questions,
+            ICasheService CacheService,
             IRepository<Poll> polls)
         {
             _context = context;
             _questionsrepo = questions;
             _pollsrepo = polls;
+            _casheService = CacheService;  
+
         }
 
         public async Task<Result<IEnumerable<QuestionResponse>>> GetAllAsync(int PollId, CancellationToken cancellationToken = default)
         {
-            // 1) check poll
+            // 1) Cache Key
+            var cacheKey = $"Poll_{PollId}_Questions";
+
+            // 2) Try get from cache
+            var cachedQuestions = await _casheService.GetAsync<IEnumerable<QuestionResponse>>(cacheKey, cancellationToken);
+
+            if (cachedQuestions is not null)
+                return Result.Success(cachedQuestions);
+
+            // 3) Check if poll exists
             var pollExists = await _pollsrepo.AnyAsync(x => x.Id == PollId, cancellationToken);
             if (!pollExists)
                 return Result.Fail<IEnumerable<QuestionResponse>>(PollErrors.PollNotFound);
 
-            // 2) fetch questions WITH answers (using dbcontext not repository)
+            // 4) Load questions + answers
             var questions = await _context.Questions
                 .Where(x => x.pollId == PollId)
                 .Include(x => x.Answers)
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
-            // 3) map to response
+            // 5) Map to response
             var response = questions.Adapt<IEnumerable<QuestionResponse>>();
 
-            return Result.Success(response);
+            // 6) Save in cache
+            await _casheService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10), cancellationToken);
 
-        } 
+            return Result.Success(response);
+        }
         public async Task<Result<QuestionResponse>> AddAsync( int PollId, QuestionRequest questionRequest, CancellationToken cancellationToken = default)
         {
             // 1) Check if the poll exists before adding a new question
@@ -66,7 +82,7 @@ namespace SurveyBasket.Services.Implementation
 
             if (QuestionsIsExiests)
             {
-                return Result.Fail<QuestionResponse>(QuestionErros.DublicatedContent);
+                return Result.Fail<QuestionResponse>(QuestionErrors.DuplicatedContent);
             }
 
             // 3) Map incoming DTO (QuestionRequest) to the Question entity
@@ -78,6 +94,7 @@ namespace SurveyBasket.Services.Implementation
             // 5) Save the new question to the database
             await _questionsrepo.AddAsync(question, cancellationToken);
             await _questionsrepo.SaveChangesAsync();
+            await _casheService.RemoveAsync($"Poll_{PollId}_Questions", cancellationToken);
 
             // 6) Return the created question mapped to a response DTO
             return Result.Success(question.Adapt<QuestionResponse>());
@@ -98,7 +115,7 @@ namespace SurveyBasket.Services.Implementation
 
             // Check not found
             if (question == null)
-                return Result.Fail<QuestionResponse>(QuestionErros.QuestionlNotFound);
+                return Result.Fail<QuestionResponse>(QuestionErrors.QuestionNotFound);
 
             // Successful
             return Result.Success(question);   
@@ -112,11 +129,12 @@ namespace SurveyBasket.Services.Implementation
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (question is null)
-                return Result.Fail<QuestionResponse>(QuestionErros.QuestionlNotFound);
+                return Result.Fail<QuestionResponse>(QuestionErrors.QuestionNotFound);
 
             question.IsActive = !question.IsActive;
 
             await _questionsrepo.SaveChangesAsync(cancellationToken);
+            await _casheService.RemoveAsync($"Poll_{PollId}_Questions", cancellationToken);
 
             var response = question.Adapt<QuestionResponse>();
             return Result.Success(response);
@@ -133,7 +151,7 @@ namespace SurveyBasket.Services.Implementation
                 );
 
             if (questionIsExists)
-                return Result.Fail<QuestionResponse>(QuestionErros.DublicatedContent);
+                return Result.Fail<QuestionResponse>(QuestionErrors.DuplicatedContent);
 
             // 2) Fetch the question with its answers (needed for update logic)
             var question = await _context.Questions
@@ -142,7 +160,7 @@ namespace SurveyBasket.Services.Implementation
 
             // 3) If not found return 404 error
             if (question is null)
-                return Result.Fail<QuestionResponse>(QuestionErros.QuestionlNotFound);
+                return Result.Fail<QuestionResponse>(QuestionErrors.QuestionNotFound);
 
             // 4) Update question main fields
             question.Content = request.Content;
@@ -167,6 +185,7 @@ namespace SurveyBasket.Services.Implementation
 
             // 9) Save all changes to the database
             await _context.SaveChangesAsync(cancellationToken);
+            await _casheService.RemoveAsync($"Poll_{pollId}_Questions", cancellationToken);
 
             // 10) Map to response
             var response = question.Adapt<QuestionResponse>();
