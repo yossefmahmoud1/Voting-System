@@ -22,6 +22,24 @@ namespace SurveyBasket.Errors
 
         public static readonly Error EmailAlreadyConfirmed =
             new("User.EmailAlreadyConfirmed", "Email is already confirmed", StatusCodes.Status409Conflict);
+        public static readonly Error UserDisabled =
+      new(
+          "User.Disabled",
+          "Your account is disabled. Please contact your administrator.",
+          StatusCodes.Status403Forbidden
+      );
+        public static readonly Error InvalidToken =
+    new(
+        "Auth.InvalidToken",
+        "Invalid token",
+        StatusCodes.Status401Unauthorized
+    );
+        public static readonly Error UserLockedOut =
+    new(
+        "User.LockedOut",
+        "Your account is temporarily locked due to multiple failed login attempts. Please try again later or contact your administrator.",
+        StatusCodes.Status423Locked
+    );
 
         public static Error UsernameTaken(List<string> suggestions) =>
             new UsernameTakenError(suggestions);

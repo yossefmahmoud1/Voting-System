@@ -6,6 +6,7 @@ namespace SurveyBasket.Entities
     {
         public string FristName { get; set; } =string.Empty; 
         public string LastName { get; set; }  = string.Empty;
+        public bool IsDisabled { get; set; } = false;
 
         public List <RefreshToken> refreshTokens { get; set; } = [];
 

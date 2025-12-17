@@ -10,10 +10,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SurveyBasket.Entities;
+using SurveyBasket.PermissionsAuth;
 using SurveyBasket.Persistence;
 using SurveyBasket.PremisonsAuth;
-using SurveyBasket.PermissionsAuth;
 using SurveyBasket.Repositeryes.Implementation;
 using SurveyBasket.Repositeryes.Interfaces;
 using SurveyBasket.Services.Implementation;
@@ -64,12 +65,14 @@ public static class DependencyInjection
         services.AddScoped<IResultService, ResultService>();
         services.AddScoped<ICasheService, CasheService>();
         services.AddScoped<IEmailSender, EmailService>();
-        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<INotifcationService, NotifcationService>();
         services.AddHttpContextAccessor();
         services.AddScoped<IQuestionService, QuestionService>();
+        services.AddScoped<IRoleService, RoleService>();
         services.AddExceptionHandler<GlobalExecptionHandler>();
         services.AddScoped<ITokenClaimsBuilder, TokenClaimsBuilder>();
+        services.AddScoped<IUsersServices, UsersServices>();
 
         services.AddProblemDetails();   
         services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
@@ -80,8 +83,33 @@ public static class DependencyInjection
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                Description = "Enter: Bearer {your JWT token}"
+            });
 
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+        });
         return services;
     }
 
@@ -150,6 +178,13 @@ public static class DependencyInjection
             options.Password.RequiredLength = 8;
             options.User.RequireUniqueEmail = true;
             options.SignIn.RequireConfirmedEmail = true;
+        });
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            options.Lockout.MaxFailedAccessAttempts = 5;
         });
 
         return services;

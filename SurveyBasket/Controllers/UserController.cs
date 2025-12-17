@@ -1,89 +1,31 @@
-﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using SurveyBasket.Dtos.User;
-using SurveyBasket.Extensions;
-using SurveyBasket.Services.Implementation;
+﻿using SurveyBasket.Abstraction.Consts;
+using SurveyBasket.PremisonsAuth;
 using SurveyBasket.Services.Interfaces;
 
 namespace SurveyBasket.Controllers
 {
-    [Route("me")]
+    [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
-    public class UserController(IUserService userService) : ControllerBase
+    public class UserController(IUsersServices usersServices) : ControllerBase
     {
-        private readonly IUserService userService = userService;
-
-
+        private readonly IUsersServices usersServices = usersServices; 
         [HttpGet("")]
-        public async Task<IActionResult> GetUserProfileAsync(CancellationToken cancellationToken)
+        [HasPermission(Permissions.GetUsers)]
+        public async Task<IActionResult> GetAllUsersAsync(CancellationToken cancellationToken)
         {
-            var userId = User.GetUserId();
+            var Users = await usersServices.GetAllUsersAsync(cancellationToken);
 
+            return Ok(Users);
+                }
 
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized();
-            }
-            var result = await userService.GetUserProfileAsync(userId);
-            if (result.IsSuccess)
-            {
-                return Ok(result.Value);
-            }
-            else
-            {
-                return Problem(statusCode: result.Error.StatusCode, title: result.Error.Message);
-            }
-       
-        }
-
-
-
-
-        [HttpPut("Update-Profile")]
-        public async Task<IActionResult> UpdateProfile(
-    [FromBody] UpdateUserRequest request,
-    CancellationToken cancellationToken)
+        [HttpGet("{id}")]
+        [HasPermission(Permissions.GetUsers)]
+        public async Task<IActionResult> GetUserDetails([FromRoute] string id, CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var userId = User.GetUserId();
-
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            var result = await userService.UpdateUserProfileAsync(userId, request, cancellationToken);
-
+            var result = await usersServices.GetUserDetails(id, cancellationToken);
             return result.IsSuccess
                 ? Ok(result.Value)
-                : Problem(statusCode: result.Error.StatusCode, title: result.Error.Message);
-        }
-
-
-
-
-
-
-
-
-
-        [HttpPut("Change-Password")]
-        public async Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest, CancellationToken cancellationToken)
-        {
-            
-
-            var userId = User.GetUserId();
-
-           
-
-            var result = await userService.ChangePasswordAsync(userId!,changePasswordRequest,cancellationToken);
-
-            return result.IsSuccess
-                ? NoContent()
-        : result.ToProblem(result.Error.StatusCode);
+                : result.ToProblem(StatusCodes.Status404NotFound);
         }
     }
-
 }
-

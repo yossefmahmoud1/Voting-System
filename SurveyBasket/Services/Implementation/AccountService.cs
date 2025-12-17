@@ -4,7 +4,7 @@ using SurveyBasket.Services.Interfaces;
 
 namespace SurveyBasket.Services.Implementation
 {
-    public class UserService(UserManager<Application_User> userManager):IUserService
+    public class AccountService(UserManager<Application_User> userManager):IAccountService
     {
         private readonly UserManager<Application_User> userManager = userManager;
 

@@ -42,32 +42,40 @@ IHttpContextAccessor httpContextAccessor , ApplicationDbContext applicationDbCon
 
 
         // -------------------- Login --------------------
-        public async Task<Result<AuthResponse>> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
+        public async Task<Result<AuthResponse>> LoginAsync(
+            LoginDto loginDto,
+            CancellationToken cancellationToken = default)
         {
-         
-           
             if (await _userRepository.GetByEmailAsync(loginDto.Email, cancellationToken) is not { } user)
                 return Result.Fail<AuthResponse>(UserErrors.InvalidCredentials);
-            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.PassWord, false);
+            //disabled HIS account
+            if (user.IsDisabled)
+                return Result.Fail<AuthResponse>(UserErrors.UserDisabled);
 
-           
-                if (!result.Succeeded)
-                {
-                    if (result.IsNotAllowed)
-                        return Result.Fail<AuthResponse>(UserErrors.EmailNotConfirmed);
-
-                    return Result.Fail<AuthResponse>(UserErrors.InvalidCredentials);
-                }
+            var result = await _signInManager.CheckPasswordSignInAsync(
+                user,
+                loginDto.PassWord,
+                lockoutOnFailure: true
+            );
+            //locked out HIS account
+            if (result.IsLockedOut)
+                return Result.Fail<AuthResponse>(UserErrors.UserLockedOut);
+            //not confirmed HIS email
+            if (result.IsNotAllowed)
+                return Result.Fail<AuthResponse>(UserErrors.EmailNotConfirmed);
+            //invalid credentials
+            if (!result.Succeeded)
+                return Result.Fail<AuthResponse>(UserErrors.InvalidCredentials);
 
             var token = await CreateTokenAsync(user);
 
-
             var refreshToken = GenerateRefreshToken();
             user.refreshTokens.Add(refreshToken);
+            //remove old refresh tokens
             await _userRepository.UpdateAsync(user, cancellationToken);
-
-            var response = new AuthResponse(
-            user.Id,
+            //log HIS login
+            return Result.Success(new AuthResponse(
+                user.Id,
                 user.Email,
                 user.FristName,
                 user.LastName,
@@ -75,8 +83,7 @@ IHttpContextAccessor httpContextAccessor , ApplicationDbContext applicationDbCon
                 _jwtOptions.expiresInHours * 3600,
                 refreshToken.Token,
                 refreshToken.Expireson
-            );
-            return Result.Success(response);
+            ));
         }
 
 
@@ -160,7 +167,10 @@ IHttpContextAccessor httpContextAccessor , ApplicationDbContext applicationDbCon
         }
 
         // -------------------- Refresh Token --------------------
-        public async Task<AuthResponse?> RefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default)
+        public async Task<Result<AuthResponse>> RefreshTokenAsync(
+     string token,
+     string refreshToken,
+     CancellationToken cancellationToken = default)
         {
             var handler = new JwtSecurityTokenHandler();
             string? userId;
@@ -168,37 +178,52 @@ IHttpContextAccessor httpContextAccessor , ApplicationDbContext applicationDbCon
             try
             {
                 var jwtToken = handler.ReadJwtToken(token);
-                userId = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                userId = jwtToken.Claims
+                    .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)
+                    ?.Value;
+
                 if (userId == null)
-                    return null;
+                    return Result.Fail<AuthResponse>(UserErrors.InvalidToken);
             }
             catch
             {
-                return null;
+                return Result.Fail<AuthResponse>(UserErrors.InvalidToken);
             }
 
-            var user = await _userRepository.GetByIdWithRefreshTokensAsync(userId, cancellationToken);
-            if (user == null)
-                return null;
+            var user = await _userRepository
+                .GetByIdWithRefreshTokensAsync(userId, cancellationToken);
 
-            var userRefreshToken = user.refreshTokens.SingleOrDefault(x => x.Token == refreshToken);
+            if (user == null)
+                return Result.Fail<AuthResponse>(UserErrors.UserNotFound);
+
+            if (user.IsDisabled)
+                return Result.Fail<AuthResponse>(UserErrors.UserDisabled);
+            if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTime.UtcNow)
+                return Result.Fail<AuthResponse>(UserErrors.UserLockedOut); ;
+
+
+            var userRefreshToken = user.refreshTokens
+                .SingleOrDefault(x => x.Token == refreshToken);
+
             if (userRefreshToken == null)
-                return null;
+                return Result.Fail<AuthResponse>(UserErrors.InvalidConfirmationToken);
 
             // التحقق من أن الريفريش توكن نشط وغير منتهي الصلاحية
-            if (!userRefreshToken.Isactive)
-                return null;
+            if (!userRefreshToken.Isactive ||
+                userRefreshToken.Expireson < DateTime.UtcNow)
+                return Result.Fail<AuthResponse>(UserErrors.InvalidConfirmationToken);
 
             // إلغاء الريفريش توكن القديم
             userRefreshToken.RevokedOn = DateTime.UtcNow;
-            var newToken = await CreateTokenAsync(user);
 
+            var newToken = await CreateTokenAsync(user);
             var newRefreshToken = GenerateRefreshToken();
+
             user.refreshTokens.Add(newRefreshToken);
 
             await _userRepository.UpdateAsync(user, cancellationToken);
 
-            return new AuthResponse(
+            return Result.Success(new AuthResponse(
                 user.Id,
                 user.Email,
                 user.FristName,
@@ -207,7 +232,7 @@ IHttpContextAccessor httpContextAccessor , ApplicationDbContext applicationDbCon
                 _jwtOptions.expiresInHours * 3600,
                 newRefreshToken.Token,
                 newRefreshToken.Expireson
-            );
+            ));
         }
 
         // -------------------- Revoke Refresh Token --------------------
