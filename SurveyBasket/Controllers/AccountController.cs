@@ -81,7 +81,7 @@ namespace SurveyBasket.Controllers
 
             return result.IsSuccess
                 ? NoContent()
-        : result.ToProblem(result.Error.StatusCode);
+        : result.ToProblem();
         }
     }
 

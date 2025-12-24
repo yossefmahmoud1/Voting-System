@@ -1,23 +1,33 @@
-﻿using SurveyBasket.Dtos.Results;
+﻿using Microsoft.AspNetCore.Mvc;
+using SurveyBasket.Dtos.Results;
 
 namespace SurveyBasket.Abstraction
 {
     public static class ResultHelpers
     {
-        public static ObjectResult ToProblem(this Result result, int statusCode)
+        public static ObjectResult ToProblem(this Result result)
         {
             if (result.IsSuccess)
-                throw new InvalidOperationException(message: "Cannot convert success result to a problem");
+                throw new InvalidOperationException(
+                    "Cannot convert a successful result to a problem response.");
 
-            var problem = Microsoft.AspNetCore.Http.Results.Problem(statusCode: statusCode);
-            var problemDetails = problem.GetType().GetProperty(nameof(ProblemDetails))!.GetValue(problem) as ProblemDetails;
+            var statusCode = result.Error.StatusCode;
 
-            problemDetails!.Extensions = new Dictionary<string, object?>
+            var problemDetails = new ProblemDetails
             {
-                { "errors", new[] { result.Error } }
+                Status = statusCode,
+                Title = "One or more errors occurred"
             };
 
-            return new ObjectResult(problemDetails);
+            problemDetails.Extensions["errors"] = new[]
+            {
+                result.Error
+            };
+
+            return new ObjectResult(problemDetails)
+            {
+                StatusCode = statusCode
+            };
         }
     }
 }

@@ -13,5 +13,11 @@
               "One or more permissions are invalid",
               StatusCodes.Status400BadRequest
           );
+        public static readonly Error InvalidRoles =
+          new(
+              "Role.InvalidRoles",
+              "One or more Roles are invalid",
+              StatusCodes.Status400BadRequest
+          );
     }
 }

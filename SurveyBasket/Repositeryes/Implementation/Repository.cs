@@ -93,5 +93,15 @@ public class Repository<T> : IRepository<T> where T : class
     {
         return await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public virtual IQueryable<T> GetQueryable(bool asNoTracking = false)
+    {
+        IQueryable<T> query = _dbSet;
+        
+        if (asNoTracking)
+            query = query.AsNoTracking();
+        
+        return query;
+    }
 }
 

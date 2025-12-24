@@ -16,7 +16,7 @@ public class ResultsController(IResultService resultService) : ControllerBase
     {
         var result = await _resultService.GetPollVotesAsync(pollId, cancellationToken);
 
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblem(StatusCodes.Status404NotFound);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 
     [HttpGet("votes-per-day")]
@@ -24,7 +24,7 @@ public class ResultsController(IResultService resultService) : ControllerBase
     {
         var result = await _resultService.GetVotesPerDayAsync(pollId, cancellationToken);
 
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblem(StatusCodes.Status404NotFound);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 
     [HttpGet("votes-per-question")]
@@ -32,6 +32,6 @@ public class ResultsController(IResultService resultService) : ControllerBase
     {
         var result = await _resultService.GetVotesPerQuestionAsync(pollId, cancellationToken);
 
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblem(StatusCodes.Status404NotFound);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

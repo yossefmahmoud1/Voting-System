@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation.AspNetCore;
 using Hangfire;
 using MapsterMapper;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -29,30 +31,49 @@ public static class DependencyInjection
     public static IServiceCollection AddDependencies(this IServiceCollection services,
         IConfiguration configuration)
     {
+        
         services.AddControllers();
+        // Add Authentication and Authorization
         services.AddAuthConf(configuration);
         var connectionString = configuration.GetConnectionString("DefaultConnection") ??
             throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
-
+        // Add Swagger Services
         services
             .AddSwaggerServices()
             .AddMapsterConf()
             .AddFluentValidationConf();
 
-
+        // JWT Options Configuration
         services.AddOptions<JwtOptions>()
              .Bind(configuration.GetSection("JwtOptions"))
              .ValidateDataAnnotations()
              .ValidateOnStart();
+        // Rate Limiting Configuration
+        services.AddRateLimiter(ratelimitoptions =>
+        {
+            ratelimitoptions.RejectionStatusCode = 429;
+            ratelimitoptions.AddConcurrencyLimiter("concurrency", Options =>
+            {
+                Options.PermitLimit = 100;
+                Options.QueueLimit = 50;
+                Options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+
+        });
 
         services.AddTransient<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddTransient<IAuthorizationPolicyProvider, PermissionAuthorizationPolicyProvider>();
 
         services.AddHangfireservice(configuration);
-
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>()
+            .AddHangfire(options =>
+            {
+                options.MinimumAvailableServers = 1;
+            });
 
         // Register Repositories
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -85,6 +106,22 @@ public static class DependencyInjection
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Version = "v1",
+                Title = "Voting System Api",
+                Description = "An ASP.NET Core Web API for Voting",
+                Contact = new OpenApiContact
+                {
+                    Name = " Email",
+                    Url = new Uri("https://example.com/contact")
+                },
+                License = new OpenApiLicense
+                {
+                    Name = "Example License",
+                    Url = new Uri("https://example.com/license")
+                }
+            });
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",

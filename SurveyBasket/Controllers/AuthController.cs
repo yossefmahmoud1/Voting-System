@@ -97,7 +97,7 @@ namespace SurveyBasket.Controllers
 
             return result.IsSuccess
                 ? Ok(new { Message = "Password has been reset successfully." })
-                : result.ToProblem(result.Error.StatusCode);
+                : result.ToProblem();
         }
 
         

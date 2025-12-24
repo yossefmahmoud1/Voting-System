@@ -1,11 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using SurveyBasket.Dtos.Common;
 using SurveyBasket.Dtos.Questions;
+using SurveyBasket.Entities;
+using System.Linq.Dynamic.Core; 
 using SurveyBasket.Entities.Answers;
 using SurveyBasket.Entities.Questions;
 using SurveyBasket.Errors;
 using SurveyBasket.Repositeryes.Interfaces;
 using SurveyBasket.Services.Interfaces;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SurveyBasket.Services.Implementation
 {
@@ -30,31 +34,40 @@ namespace SurveyBasket.Services.Implementation
 
         }
 
-        public async Task<Result<IEnumerable<QuestionResponse>>> GetAllAsync(int PollId, CancellationToken cancellationToken = default)
+        public async Task<Result<PaginatedList<QuestionResponse>>> GetAllAsync(RequestFilters filters,int PollId, CancellationToken cancellationToken = default)
         {
-            // 1) Cache Key
-            var cacheKey = $"Poll_{PollId}_Questions";
+            // 1) Create cache key
+            var cacheKey =
+        $"Poll_{PollId}_Questions_Page_{filters.PageNumber}_Size_{filters.PageSize}";
+            // 2) Check in cache
+            var cachedResult =
+                await _casheService.GetAsync<PaginatedList<QuestionResponse>>(cacheKey, cancellationToken);
 
-            // 2) Try get from cache
-            var cachedQuestions = await _casheService.GetAsync<IEnumerable<QuestionResponse>>(cacheKey, cancellationToken);
-
-            if (cachedQuestions is not null)
-                return Result.Success(cachedQuestions);
+            if (cachedResult is not null)
+                return Result.Success(cachedResult);
 
             // 3) Check if poll exists
             var pollExists = await _pollsrepo.AnyAsync(x => x.Id == PollId, cancellationToken);
             if (!pollExists)
-                return Result.Fail<IEnumerable<QuestionResponse>>(PollErrors.PollNotFound);
+                return Result.Fail<PaginatedList<QuestionResponse>>(PollErrors.PollNotFound);
 
             // 4) Load questions + answers
-            var questions = await _context.Questions
-                .Where(x => x.pollId == PollId)
-                .Include(x => x.Answers)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+            var query = _context.Questions
+                .Where(x => x.pollId == PollId);
+                if (!string.IsNullOrEmpty(filters.SearchValue))
+            {
+                query = query.Where(x => x.Content.Contains(filters.SearchValue));
+            }
+            if (!string.IsNullOrEmpty(filters.SortColumn))
+            {
+                query = query.OrderBy($"{filters.SortColumn}{filters.SortDirection}"); 
+            }
+            var source=   query.Include(x => x.Answers)
+                .ProjectToType<QuestionResponse>()
+                .AsNoTracking();                ;
 
             // 5) Map to response
-            var response = questions.Adapt<IEnumerable<QuestionResponse>>();
+            var response = await PaginatedList<QuestionResponse>.CreateAsync(source, filters.PageNumber,filters.PageSize,cancellationToken);
 
             // 6) Save in cache
             await _casheService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(10), cancellationToken);

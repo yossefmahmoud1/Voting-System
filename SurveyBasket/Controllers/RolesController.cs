@@ -28,7 +28,7 @@ namespace SurveyBasket.Controllers
         public async Task<IActionResult> GetRoleByid([FromRoute]string Id, CancellationToken cancellationToken)
         {
             var result = await roleService.GetAsync(Id, cancellationToken);
-            return result.IsSuccess ? Ok(result.Value) : result.ToProblem(StatusCodes.Status404NotFound);
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 
         }
         [HttpPost("")]
@@ -36,7 +36,7 @@ namespace SurveyBasket.Controllers
         public async Task<IActionResult> AddRole([FromBody]RoleRequest roleRequest, CancellationToken cancellationToken)
         {
             var result = await roleService.AddAsync(roleRequest, cancellationToken);
-            return result.IsSuccess ? Ok(result.Value) : result.ToProblem(StatusCodes.Status400BadRequest);
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
 
         }
         [HttpPut("{id}")]
@@ -45,7 +45,7 @@ namespace SurveyBasket.Controllers
         {
             var result = await roleService.UpdateAsync(id, request);
 
-            return result.IsSuccess ? NoContent() : result.ToProblem(StatusCodes.Status400BadRequest);
+            return result.IsSuccess ? NoContent() : result.ToProblem();
         }
 
         [HttpPut("{id}/toggle-status")]
@@ -54,7 +54,7 @@ namespace SurveyBasket.Controllers
         {
             var result = await roleService.ToggleStatusAsync(id);
 
-            return result.IsSuccess ? NoContent() : result.ToProblem(StatusCodes.Status400BadRequest);
+            return result.IsSuccess ? NoContent() : result.ToProblem();
         }
     }
 }

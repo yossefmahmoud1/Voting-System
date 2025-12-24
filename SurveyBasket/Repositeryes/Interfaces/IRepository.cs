@@ -17,5 +17,6 @@ public interface IRepository<T> where T : class
     void Remove(T entity);
     void RemoveRange(IEnumerable<T> entities);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    IQueryable<T> GetQueryable(bool asNoTracking = false);
 }
 

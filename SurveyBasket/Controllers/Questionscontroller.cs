@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using SurveyBasket.Abstraction;
+using SurveyBasket.Dtos.Common;
 using SurveyBasket.Dtos.Questions;
 using SurveyBasket.Services.Implementation;
 using SurveyBasket.Services.Interfaces;
@@ -18,15 +19,15 @@ namespace SurveyBasket.Controllers
             var result = await questionService.GetByIdAsync(pollId,  id, cancellationToken);
             if (result.IsSuccess)
                 return Ok( result.Value);
-            return result.ToProblem( StatusCodes.Status404NotFound);
+            return result.ToProblem();
         }
         [HttpGet("")]
-        public async Task<IActionResult> GetAll([FromRoute] int pollId , CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAll([FromRoute] int pollId, [FromQuery] RequestFilters filters, CancellationToken cancellationToken)
         {
-           var result = await questionService.GetAllAsync(pollId, cancellationToken);
+           var result = await questionService.GetAllAsync(filters, pollId, cancellationToken);
             if (result.IsSuccess)
                 return Ok( result.Value);
-            return result.ToProblem( StatusCodes.Status404NotFound);
+            return result.ToProblem();
         }
 
         [HttpPost("")]
@@ -37,10 +38,8 @@ namespace SurveyBasket.Controllers
             if (result.IsSuccess)
                 return CreatedAtAction(nameof(GetById) , new {pollId , result.Value.Id},result.Value);
 
-            return result.Error == QuestionErrors.DuplicatedContent
-                ? result.ToProblem(StatusCodes.Status409Conflict)
-                : result.ToProblem(StatusCodes.Status404NotFound);
-          
+            return result.ToProblem();
+
         }
 
         [HttpPut("{Id}/ToggleStatus")]
@@ -53,7 +52,7 @@ namespace SurveyBasket.Controllers
 
             return result.IsSuccess
                 ? Ok(result.Value)
-                : result.ToProblem(StatusCodes.Status404NotFound);
+                : result.ToProblem();
         }
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateAsync(
@@ -68,9 +67,7 @@ namespace SurveyBasket.Controllers
 
             return result.IsSuccess
                 ? Ok(result.Value)
-                : result.ToProblem(result.Error == QuestionErrors.DuplicatedContent
-                    ? StatusCodes.Status409Conflict
-                    : StatusCodes.Status404NotFound);
+                : result.ToProblem();
 
 
         }

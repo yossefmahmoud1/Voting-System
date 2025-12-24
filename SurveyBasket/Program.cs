@@ -7,7 +7,9 @@ using SurveyBasket;
 using SurveyBasket.MiddleWare;
 using SurveyBasket.Persistence;
 using SurveyBasket.Services.Implementation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using SurveyBasket.Services.OptionsPattern;
+using HealthChecks.UI.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +70,13 @@ app.UseAuthorization();
 app.MapControllers();
 //app.UseMiddleware<ExecptionHandlingMiddleWare>();
 app.UseExceptionHandler();
+app.UseRateLimiter();
+app.MapHealthChecks("/health",new HealthCheckOptions { 
+ResponseWriter= UIResponseWriter.WriteHealthCheckUIResponse
+
+});
+  
 app.Run();
 
 // Make Program class accessible for testing
+ 

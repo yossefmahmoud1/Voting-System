@@ -1,5 +1,9 @@
-﻿using SurveyBasket.Abstraction.Consts;
+using SurveyBasket.Abstraction;
+using SurveyBasket.Abstraction.Consts;
+using SurveyBasket.Dtos.Common;
+using SurveyBasket.Dtos.Users;
 using SurveyBasket.PremisonsAuth;
+using SurveyBasket.Services.Implementation;
 using SurveyBasket.Services.Interfaces;
 
 namespace SurveyBasket.Controllers
@@ -11,9 +15,9 @@ namespace SurveyBasket.Controllers
         private readonly IUsersServices usersServices = usersServices; 
         [HttpGet("")]
         [HasPermission(Permissions.GetUsers)]
-        public async Task<IActionResult> GetAllUsersAsync(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAllUsersAsync([FromQuery] RequestFilters? filters, CancellationToken cancellationToken)
         {
-            var Users = await usersServices.GetAllUsersAsync(cancellationToken);
+            var Users = await usersServices.GetAllUsersAsync(filters, cancellationToken);
 
             return Ok(Users);
                 }
@@ -25,7 +29,57 @@ namespace SurveyBasket.Controllers
             var result = await usersServices.GetUserDetails(id, cancellationToken);
             return result.IsSuccess
                 ? Ok(result.Value)
-                : result.ToProblem(StatusCodes.Status404NotFound);
+                : result.ToProblem();
         }
-    }
+
+
+
+        [HttpPost("")]
+        [HasPermission(Permissions.AddUsers)]
+        public async Task<IActionResult> AddUser(
+    [FromBody] AddUserRequest addUserRequest,
+    CancellationToken cancellationToken)
+        {
+            var result = await usersServices.AddUserAsync(addUserRequest, cancellationToken);
+
+            return result.IsSuccess
+      ? Created(string.Empty, result.Value)
+      : result.ToProblem();
+
+        }
+
+
+        [HttpPut("{id}")]
+        [HasPermission(Permissions.UpdateUsers)]
+        public async Task<IActionResult> UpdateUser(
+        [FromRoute] string id,
+        [FromBody] UpdateUsersRequest request,
+        CancellationToken cancellationToken)
+        {
+            var result = await usersServices.UpdateUserAsync(id, request, cancellationToken);
+            return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        }
+
+
+        [HttpPut("{id}/toggle-status")]
+        [HasPermission(Permissions.UpdateUsers)]
+        public async Task<IActionResult> ToggleStatus([FromRoute] string id)
+        {
+            var result = await usersServices.ToggleStatus(id);
+            return result.IsSuccess ? NoContent() : result.ToProblem();
+        }
+
+        [HttpPut("{id}/unlock")]
+        [HasPermission(Permissions.UpdateUsers)]
+        public async Task<IActionResult> Unlock([FromRoute] string id)
+        {
+            var result = await usersServices.Unlock(id);
+            return result.IsSuccess ? NoContent() : result.ToProblem();
+        }
+    };
+
+
+
+
+
 }

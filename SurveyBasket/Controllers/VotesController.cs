@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SurveyBasket.Abstraction;
 using SurveyBasket.Abstraction.Consts;
 using SurveyBasket.Dtos.Votes;
 using SurveyBasket.Extensions;
@@ -12,6 +14,7 @@ namespace SurveyBasket.Controllers
     [Route("api/Polls/{pollId}/Vote")]
     [ApiController]
     [Authorize(Roles =DefaultRoles.Member)]
+    [EnableRateLimiting("concurrency")]
     public class VotesController(IQuestionService questionService , IVoteService voteService) : ControllerBase
     {
         private readonly IQuestionService _questionService = questionService;
@@ -29,9 +32,8 @@ namespace SurveyBasket.Controllers
             if (result.IsSuccess)
                 return Ok(result.Value);
 
-            return result.Error == VoteErrors.AlreadyVoted
-                ? result.ToProblem(StatusCodes.Status409Conflict)
-                : result.ToProblem(StatusCodes.Status404NotFound);
+            return result.ToProblem();
+            
         }
 
         [HttpPost("")]
@@ -44,9 +46,8 @@ namespace SurveyBasket.Controllers
             var result = await voteService.AddAsync (pollId, userId!, voteRequest, cancellationToken);
             if (result.IsSuccess)
                 return Created();
-            return result.Error == VoteErrors.AlreadyVoted
-                ? result.ToProblem(StatusCodes.Status409Conflict)
-                : result.ToProblem(StatusCodes.Status404NotFound);
+            return result.ToProblem();
+
         }
     }
 }

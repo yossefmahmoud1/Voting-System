@@ -1,4 +1,6 @@
-﻿using Hangfire;
+using Hangfire;
+using SurveyBasket.Dtos.Common;
+using SurveyBasket.Extensions;
 using SurveyBasket.Repositeryes.Interfaces;
 using SurveyBasket.Services.Implementation;
 
@@ -10,18 +12,38 @@ public class PollService : IPollService
     private readonly INotifcationService notifcationService;
     private readonly ApplicationDbContext _context;
 
-    public PollService(IRepository<Poll> pollRepository, INotifcationService notifcationService, ApplicationDbContext context
-)
+    public PollService(IRepository<Poll> pollRepository, INotifcationService notifcationService, ApplicationDbContext context)
     {
         _pollRepository = pollRepository ?? throw new ArgumentNullException(nameof(pollRepository));
         this.notifcationService = notifcationService;
         _context = context;
 
     }
-    public async Task<Result<IEnumerable<Poll>>> GetAllAsync(bool asNoTracking = false, CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<Poll>>> GetAllAsync(
+        RequestFilters? filters = null,
+        bool asNoTracking = false,
+        CancellationToken cancellationToken = default)
     {
-        var polls = await _pollRepository.GetAllAsync(asNoTracking, cancellationToken);
-        return Result.Success(polls);
+        filters ??= new RequestFilters();
+
+        var query = _pollRepository
+            .GetQueryable(asNoTracking)
+            .ApplyFilters(
+                filters,
+                p => p.Title,
+                p => p.Summary);
+
+        // Default sort (if client didn't send SortColumn)
+        if (string.IsNullOrWhiteSpace(filters.SortColumn))
+            query = query.OrderByDescending(p => p.Id);
+
+        var paginatedResult = await PaginatedList<Poll>.CreateAsync(
+            query,
+            filters.PageNumber,
+            filters.PageSize,
+            cancellationToken);
+
+        return Result.Success(paginatedResult);
     }
 
 
