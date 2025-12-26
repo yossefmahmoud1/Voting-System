@@ -60,7 +60,8 @@ The system is designed to manage polls, questions, voting, and results, with a c
 - Swagger (OpenAPI)  
 - MailKit  
 
----
+
+
 
 ## 📁 Project Structure
 
@@ -75,3 +76,13 @@ VotingSystem/
 ├── PermissionsAuth/    # Permission-based authorization
 ├── Errors/             # Custom errors & Result pattern
 ├── Templates/          # HTML email templates
+````
+
+
+## 📸 API Documentation Preview
+
+<img
+  src="https://github.com/user-attachments/assets/1abad245-2ab5-46e6-bce8-a6ca51cc5e37"
+  alt="Swagger API Documentation"
+  width="100%"
+/>
