@@ -1,0 +1,82 @@
+using Hangfire;
+using Hangfire.Dashboard.BasicAuthorization;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+//using Serilog;
+using VotingSystem;
+using VotingSystem.MiddleWare;
+using VotingSystem.Persistence;
+using VotingSystem.Services.Implementation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using VotingSystem.Services.OptionsPattern;
+using HealthChecks.UI.Client;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDependencies(builder.Configuration);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+//builder.Services.AddIdentityApiEndpoints<Application_User>()
+//    .AddEntityFrameworkStores<ApplicationDbContext>();
+//    .AddDefaultTokenProviders();
+
+
+builder.Services.AddDistributedMemoryCache();
+//builder.Host.UseSerilog((context,  configuration) =>
+//{
+//    configuration.ReadFrom.Configuration(context.Configuration);
+
+
+//});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+//app.UseSerilogRequestLogging();
+app.UseHttpsRedirection();
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[]
+    {
+        new BasicAuthAuthorizationFilter(new BasicAuthAuthorizationFilterOptions
+        {
+            Users = new[]
+            {
+                new BasicAuthAuthorizationUser
+                {
+                    Login = app.Configuration.GetValue<string>("HangFireSettings:UserName"),
+                    PasswordClear = app.Configuration.GetValue<string>("HangFireSettings:Password")
+                }
+            }
+        })
+    },
+    DashboardTitle = "Voting System Hangfire Dashboard",
+});
+RecurringJob.AddOrUpdate<INotifcationService>(
+    "SendPollNotifications",
+    service => service.SendNewPollNotficationsAsync(null),
+    Cron.Daily
+);
+
+
+app.UseAuthentication();
+app.UseAuthorization();
+//app.MapIdentityApi<Application_User>();
+app.MapControllers();
+//app.UseMiddleware<ExecptionHandlingMiddleWare>();
+app.UseExceptionHandler();
+app.UseRateLimiter();
+app.MapHealthChecks("/health",new HealthCheckOptions { 
+ResponseWriter= UIResponseWriter.WriteHealthCheckUIResponse
+
+});
+  
+app.Run();
+
+// Make Program class accessible for testing
+ 
