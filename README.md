@@ -40,7 +40,6 @@ The solution is organized into logical components to promote separation of conce
     -   `PremisonsAuth/`: Implements the custom permission-based authorization logic.
     -   `Errors/`: Custom error types and exception handling.
     -   `Templates/`: HTML templates for email notifications.
--   `SurveyBasket.Tests/`: xUnit project for integration tests.
 
 ## Getting Started
 
