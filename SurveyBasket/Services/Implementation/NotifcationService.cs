@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using SurveyBasket.Abstraction.Consts;
 using SurveyBasket.Helpers;
 using SurveyBasket.Repositeryes.Interfaces;
 using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
@@ -39,7 +40,7 @@ namespace SurveyBasket.Services.Implementation
                     .ToListAsync();
             }
 
-            var users = await userManager.Users.ToListAsync();
+            var users = await userManager.GetUsersInRoleAsync(DefaultRoles.Member);
             var Origin = httpContextAccessor.HttpContext?.Request.Headers.Origin;
 
             foreach (var poll in polls)

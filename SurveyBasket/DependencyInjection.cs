@@ -96,7 +96,11 @@ public static class DependencyInjection
         services.AddScoped<IUsersServices, UsersServices>();
 
         services.AddProblemDetails();   
-        services.Configure<MailSettings>(configuration.GetSection(nameof(MailSettings)));
+        services.AddOptions<MailSettings>()
+            .Bind(configuration.GetSection("MailSettings"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         return services;
     }
 

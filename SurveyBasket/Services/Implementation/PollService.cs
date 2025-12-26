@@ -103,11 +103,7 @@ public class PollService : IPollService
         var pollToUpdate = existingPollResult.Value;
 
         // 3️⃣ حدث البيانات
-        pollToUpdate.Title = poll.Title;
-        pollToUpdate.Summary = poll.Summary;
-        pollToUpdate.IsPublished = poll.IsPublished;
-        pollToUpdate.StartsAt = poll.StartsAt;
-        pollToUpdate.EndsAt = poll.EndsAt;
+        pollToUpdate.Adapt(poll);
 
         // 4️⃣ حفظ التغييرات
         _pollRepository.Update(pollToUpdate);

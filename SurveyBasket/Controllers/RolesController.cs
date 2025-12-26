@@ -17,7 +17,7 @@ namespace SurveyBasket.Controllers
 
         [HttpGet("")]
         [HasPermission(Permissions.GetRoles)]
-        public async Task<IActionResult> GetAll([FromQuery]bool? IncludeDiasbeled , CancellationToken cancellationToken )
+        public async Task<IActionResult> GetAll([FromQuery]bool IncludeDiasbeled , CancellationToken cancellationToken )
         {
             var roles= await roleService.GetAllAsync(IncludeDiasbeled, cancellationToken);
             return Ok(roles);
