@@ -113,19 +113,15 @@ public static class DependencyInjection
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "Voting System Api",
-                Description = "An ASP.NET Core Web API for Voting",
+                Title = "Voting System API",
+                Description = "ASP.NET Core Web API for managing voting, polls, and results.",
                 Contact = new OpenApiContact
                 {
-                    Name = " Email",
-                    Url = new Uri("https://example.com/contact")
-                },
-                License = new OpenApiLicense
-                {
-                    Name = "Example License",
-                    Url = new Uri("https://example.com/license")
+                    Name = "Youssef Mahmoud",
+                    Email = "omaryosef136@gmail.com"
                 }
             });
+
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
