@@ -59,6 +59,23 @@ The system is designed to manage polls, questions, voting, and results, with a c
 - FluentValidation  
 - Swagger (OpenAPI)  
 - MailKit  
+## 🧪 Unit Testing
+
+The project includes a dedicated **Unit Test** project to ensure the reliability of business logic and services.
+
+### Testing Stack
+- xUnit
+- Moq
+- FluentAssertions
+
+### Covered Areas
+- Role management logic
+- User services
+- Permission and role assignment scenarios
+
+### Run Tests
+```bash
+dotnet test
 
 
 
