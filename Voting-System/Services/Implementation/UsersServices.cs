@@ -22,62 +22,112 @@ namespace VotingSystem.Services.Implementation
         private readonly IRoleService roleService = roleService;
 
         public async Task<PaginatedList<UserResponse>> GetAllUsersAsync(
-            RequestFilters? filters = null,
-            CancellationToken cancellationToken = default)
+     RequestFilters? filters = null,
+     CancellationToken cancellationToken = default)
         {
             filters ??= new RequestFilters();
 
-            var baseQuery =
-                from u in dbContext.Users
-                join ur in dbContext.UserRoles
-                    on u.Id equals ur.UserId
-                join r in dbContext.Roles
-                    on ur.RoleId equals r.Id
-                    into roles
-                where !roles.Any(x => x.Name == DefaultRoles.Member)
-                select new
+            // Get user IDs that don't have Member role
+            var memberRoleId = await dbContext.Roles
+                .Where(r => r.Name == DefaultRoles.Member)
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var userIdsWithMemberRole = memberRoleId != null
+                ? await dbContext.UserRoles
+                    .Where(ur => ur.RoleId == memberRoleId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync(cancellationToken)
+                : new List<string>();
+
+            // Get users excluding those with Member role
+            var usersQuery = dbContext.Users
+                .Where(u => !userIdsWithMemberRole.Contains(u.Id));
+
+            // Apply search filters
+            if (!string.IsNullOrWhiteSpace(filters.SearchValue))
+            {
+                var searchValue = filters.SearchValue.ToLower();
+                usersQuery = usersQuery.Where(u =>
+                    (u.Email != null && u.Email.ToLower().Contains(searchValue)) ||
+                    (u.FristName != null && u.FristName.ToLower().Contains(searchValue)) ||
+                    (u.LastName != null && u.LastName.ToLower().Contains(searchValue)));
+            }
+
+            // Apply sorting
+            usersQuery = filters.SortColumn?.ToLower() switch
+            {
+                "email" => filters.SortDirection?.ToLower() == "desc"
+                    ? usersQuery.OrderByDescending(u => u.Email)
+                    : usersQuery.OrderBy(u => u.Email),
+                "firstname" => filters.SortDirection?.ToLower() == "desc"
+                    ? usersQuery.OrderByDescending(u => u.FristName)
+                    : usersQuery.OrderBy(u => u.FristName),
+                "lastname" => filters.SortDirection?.ToLower() == "desc"
+                    ? usersQuery.OrderByDescending(u => u.LastName)
+                    : usersQuery.OrderBy(u => u.LastName),
+                _ => usersQuery.OrderBy(u => u.Email)
+            };
+
+            // Get total count before pagination
+            var totalCount = await usersQuery.CountAsync(cancellationToken);
+
+            // Apply pagination and get user data
+            var users = await usersQuery
+                .Skip((filters.PageNumber - 1) * filters.PageSize)
+                .Take(filters.PageSize)
+                .Select(u => new
                 {
                     u.Id,
                     u.FristName,
                     u.LastName,
                     u.Email,
-                    u.IsDisabled,
-                    Roles = roles.Select(x => x.Name).ToList()
-                };
-
-            var query = baseQuery
-                .GroupBy(x => new
-                {
-                    x.Id,
-                    x.FristName,
-                    x.LastName,
-                    x.Email,
-                    x.IsDisabled
+                    u.IsDisabled
                 })
-                .Select(g => new UserResponse(
-                    g.Key.Id,
-                    g.Key.Email!,
-                    g.Key.FristName,
-                    g.Key.LastName,
-                    g.Key.IsDisabled,
-                    g.SelectMany(x => x.Roles).ToList()
-                ))
-                .ApplyFilters(
-                    filters,
-                    u => u.Email,
-                    u => u.FristName,
-                    u => u.LastName);
+                .ToListAsync(cancellationToken);
 
-            // Default sort if client didn't specify any
-            if (string.IsNullOrWhiteSpace(filters.SortColumn))
-                query = query.OrderBy(u => u.Email);
+            // Get roles for each user
+            var userIds = users.Select(u => u.Id).ToList();
+            var userRolesDict = userIds.Any()
+                ? await dbContext.UserRoles
+                    .Where(ur => userIds.Contains(ur.UserId))
+                    .Join(dbContext.Roles,
+                        ur => ur.RoleId,
+                        r => r.Id,
+                        (ur, r) => new { ur.UserId, RoleName = r.Name })
+                    .GroupBy(x => x.UserId)
+                    .ToDictionaryAsync(
+                        g => g.Key,
+                        g => g.Select(x => x.RoleName!).ToList(),
+                        cancellationToken)
+                : new Dictionary<string, List<string>>();
 
-            return await PaginatedList<UserResponse>.CreateAsync(
-                query,
-                filters.PageNumber,
-                filters.PageSize,
-                cancellationToken);
+            // Map to UserResponse and create PaginatedList
+            var userResponses = users.Select(u => new UserResponse(
+                u.Id,
+                u.Email ?? string.Empty,
+                u.FristName ?? string.Empty,
+                u.LastName ?? string.Empty,
+                u.IsDisabled,
+                userRolesDict.GetValueOrDefault(u.Id, new List<string>())
+            )).ToList();
+
+            // Create PaginatedList using reflection or helper method
+            // Since constructor is private, we'll create it via CreateAsync with materialized data
+            var totalPages = (int)Math.Ceiling(totalCount / (double)filters.PageSize);
+            return new PaginatedList<UserResponse>
+            {
+                Items = userResponses,
+                PageNumber = filters.PageNumber,
+                TotalPages = totalPages
+            };
         }
+
+
+
+
+
+
         public async Task<Result<UserResponse>> GetUserDetails(string id, CancellationToken cancellationToken = default)
         {
             var user = await userManager.FindByIdAsync(id);

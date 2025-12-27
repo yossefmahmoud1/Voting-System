@@ -56,5 +56,16 @@ namespace VotingSystem.Controllers
 
             return result.IsSuccess ? NoContent() : result.ToProblem();
         }
+
+        [HttpPost("{userId}/assign-role")]
+        [HasPermission(Permissions.UpdateRoles)]
+        public async Task<IActionResult> AssignRole(
+            [FromRoute] string userId,
+            [FromBody] AssignRoleRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await roleService.AssignRoleAsync(userId, request, cancellationToken);
+            return result.IsSuccess ? NoContent() : result.ToProblem();
+        }
     }
 }

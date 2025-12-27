@@ -20,7 +20,8 @@ namespace VotingSystem.Services.Implementation
         {
             var roles = await _userRepository.GetRolesAsync(user);
 
-            var permissions = await _context.Roles
+            // Get permissions from roles
+            var rolePermissions = await _context.Roles
                 .Join(_context.RoleClaims,
                     role => role.Id,
                     claim => claim.RoleId,
@@ -29,6 +30,16 @@ namespace VotingSystem.Services.Implementation
                 .Select(x => x.ClaimValue)
                 .Distinct()
                 .ToListAsync();
+
+            // Get permissions directly assigned to user (UserClaims)
+            var userPermissions = await _context.UserClaims
+                .Where(x => x.UserId == user.Id && x.ClaimType == Permissions.Type)
+                .Select(x => x.ClaimValue)
+                .Distinct()
+                .ToListAsync();
+
+            // Combine both role permissions and direct user permissions
+            var allPermissions = rolePermissions.Union(userPermissions).Distinct().ToList();
 
             var claims = new List<Claim>
         {
@@ -41,8 +52,11 @@ namespace VotingSystem.Services.Implementation
             foreach (var role in roles)
                 claims.Add(new Claim(ClaimTypes.Role, role));
 
-            foreach (var permission in permissions)
-                claims.Add(new Claim(Permissions.Type, permission));
+            foreach (var permission in allPermissions)
+            {
+                if (!string.IsNullOrEmpty(permission))
+                    claims.Add(new Claim(Permissions.Type, permission));
+            }
 
             return claims;
         }

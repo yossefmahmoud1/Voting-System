@@ -9,5 +9,6 @@ namespace VotingSystem.Services.Interfaces
         Task<Result<RoleDetailsResponse>> AddAsync(RoleRequest request, CancellationToken cancellationToken = default);
         Task<Result> UpdateAsync(string id, RoleRequest request);
         Task<Result> ToggleStatusAsync(string id);
+        Task<Result> AssignRoleAsync(string userId, AssignRoleRequest request, CancellationToken cancellationToken = default);
     }
 }
